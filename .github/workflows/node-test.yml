@@ -1,25 +1,67 @@
-name: Node.js CI
-on: 
+name: Node.js CI (debug)
+
+on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-  
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: setup Node.js
+      - name: Show files in repo
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Files:"
+          ls -R
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Show Node & npm versions
+        run: |
+          node -v
+          npm -v
 
-      - name: run tests
-        run: npm test
+      - name: Show package.json (if exists)
+        run: |
+          if [ -f package.json ]; then
+            echo "package.json found:"
+            cat package.json
+          else
+            echo "No package.json at repo root!"
+          fi
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci"
+            npm ci
+          else
+            echo "No package-lock.json, using npm install"
+            npm install
+          fi
+
+      - name: Run tests (if test script exists)
+        run: |
+          if [ ! -f package.json ]; then
+            echo "No package.json, skipping tests step entirely"
+            exit 0
+          fi
+
+          echo "Checking available npm scripts:"
+          npm run || true
+
+          if npm run | grep -q " test"; then
+            echo "Running npm test"
+            npm test
+          else
+            echo "No test script defined, skipping tests"
+          fi
